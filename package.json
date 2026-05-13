@@ -1,0 +1,58 @@
+{
+  "name": "pi-linter",
+  "version": "0.2.2",
+  "description": "Inline session linter for Pi — flags vague openers, pronoun soup, scope creep, and other input anti-patterns above the editor.",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "pi-linter",
+    "pi-lint",
+    "linter",
+    "lint",
+    "prompt",
+    "input",
+    "review",
+    "session",
+    "anti-pattern"
+  ],
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/tianrendong/pi-linter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tianrendong/pi-linter/issues"
+  },
+  "homepage": "https://github.com/tianrendong/pi-linter#readme",
+  "scripts": {
+    "typecheck": "tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --strict --skipLibCheck index.ts rules.ts lint.ts"
+  },
+  "files": [
+    "index.ts",
+    "rules.ts",
+    "lint.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  },
+  "peerDependenciesMeta": {
+    "@earendil-works/pi-coding-agent": {
+      "optional": true
+    },
+    "@earendil-works/pi-tui": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}
