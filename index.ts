@@ -111,6 +111,14 @@ function resolveConfig(persisted: PersistedConfig): ResolvedConfig {
 export default function (pi: ExtensionAPI): void {
 	let persisted = loadPersisted();
 	let config = resolveConfig(persisted);
+	let lintInterval: ReturnType<typeof setInterval> | undefined;
+
+	function clearLintInterval(): void {
+		if (lintInterval) {
+			clearInterval(lintInterval);
+			lintInterval = undefined;
+		}
+	}
 
 	function persist(mutate: (draft: PersistedConfig) => void): void {
 		const next: PersistedConfig = JSON.parse(JSON.stringify(persisted));
@@ -126,6 +134,7 @@ export default function (pi: ExtensionAPI): void {
 
 	pi.on("session_start", async (_event, ctx) => {
 		if (!ctx.hasUI) return;
+		clearLintInterval();
 
 		// Reload from disk + re-overlay env each session in case it changed.
 		persisted = loadPersisted();
@@ -161,23 +170,16 @@ export default function (pi: ExtensionAPI): void {
 			ctx.ui.setWidget(PI_LINT_WIDGET_KEY, lines, { placement: "aboveEditor" });
 		};
 
-		const handle = setInterval(tick, config.pollMs);
-		(handle as { unref?: () => void }).unref?.();
-
-		// Stash the interval so we can clear on shutdown.
-		(ctx as unknown as { __piLintInterval?: ReturnType<typeof setInterval> }).__piLintInterval = handle;
+		lintInterval = setInterval(tick, config.pollMs);
+		(lintInterval as { unref?: () => void }).unref?.();
 
 		// Initial render so users see disabled-state immediately.
 		tick();
 	});
 
 	pi.on("session_shutdown", async (_event, ctx) => {
+		clearLintInterval();
 		if (!ctx.hasUI) return;
-		const stash = ctx as unknown as { __piLintInterval?: ReturnType<typeof setInterval> };
-		if (stash.__piLintInterval) {
-			clearInterval(stash.__piLintInterval);
-			stash.__piLintInterval = undefined;
-		}
 		ctx.ui.setWidget(PI_LINT_WIDGET_KEY, undefined);
 	});
 
