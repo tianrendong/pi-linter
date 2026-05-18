@@ -1,6 +1,6 @@
 # pi-linter
 
-> Inline session linter for [pi](https://github.com/earendil-works/pi-coding-agent). Catches vague openers, pronoun soup, scope creep, unbounded loops, and other input anti-patterns **before** you hit Enter.
+> Inline session linter for [pi](https://github.com/earendil-works/pi-coding-agent). Opt-in rules catch vague openers, pronoun soup, scope creep, unbounded loops, and other input anti-patterns **before** you hit Enter.
 
 A small, deterministic linter that renders findings above the input bar in pi.
 No LLM calls, no latency. Pure regex/heuristic rules. Suggestions only — it
@@ -41,28 +41,20 @@ pi install ./packages/pi-linter
 
 ## Rules
 
-pi-linter ships with a small **basics** set on by default. The other rules are
-opt-in via `/pi-lint enable <rule>` — the philosophy is to start quiet and let
-you turn things on once you've seen them help.
-
-### On by default
+pi-linter ships with every rule **off by default**. Opt in per rule via
+`/pi-lint enable <rule>` — start silent, then enable only rules you want.
 
 | Rule | Severity | Triggers when | Fix template |
 |---|---|---|---|
 | `vague-opener` | warn | First message of session, <60 chars, no URL / file path / issue ID | `implement <linear/notion url>` · `fix <file>:<line>: <error>` |
 | `reactive-noop` | warn | Prompt <80 chars matching `still not working`, `try again`, `same issue`, `didn't work`, `still failing/broken/wrong` | `"ran X, got Y instead of Z; restarted the worker first"` |
 | `unbounded-loop` | critical | Contains `watch`, `monitor`, `keep running/trying`, `every <N>`, `until`, `loop`, `forever` AND no stop criterion | `"retry once on flaky tests, ping me on any other failure"` |
-
-### Off by default (opt in)
-
-| Rule | Severity | Triggers when |
-|---|---|---|
-| `pronoun-soup` | warn | Prompt <300 chars contains 2+ bare `this/that/it/them/they` not anchored to a noun |
-| `imperative-only` | warn | Prompt is exactly `do it`, `yes`, `go`, `continue`, `ok`, `proceed`, `fix it`, etc. AND last assistant turn didn't end with a question |
-| `scope-creep` | info | Not the first message AND starts with `let's also`, `also,`, `btw,`, `while you're at it`, `one more thing` |
-| `reversal` | info | Starts with `actually,` or `actually ` |
-| `naked-review-paste` | warn | Contains `Comment N:` / `Hunk:` AND non-paste instruction text is <40 chars |
-| `review-drip` | info | 3rd+ pasted review comment in the same session |
+| `pronoun-soup` | warn | Prompt <300 chars contains 2+ bare `this/that/it/them/they` not anchored to a noun | `"the receipt processor" not "it"` |
+| `imperative-only` | warn | Prompt is exactly `do it`, `yes`, `go`, `continue`, `ok`, `proceed`, `fix it`, etc. AND last assistant turn didn't end with a question | `"go ahead with option B"` |
+| `scope-creep` | info | Not the first message AND starts with `let's also`, `also,`, `btw,`, `while you're at it`, `one more thing` | `capture in TODO.md, finish current PR, start a fresh pi session` |
+| `reversal` | info | Starts with `actually,` or `actually ` | `"sketch the data model first, push back if you disagree"` |
+| `naked-review-paste` | warn | Contains `Comment N:` / `Hunk:` AND non-paste instruction text is <40 chars | `"address all"` |
+| `review-drip` | info | 3rd+ pasted review comment in the same session | `"here are 5 comments, address them all and tell me which you disagree with"` |
 
 ## Configure
 
@@ -71,11 +63,11 @@ Inside pi:
 ```
 /pi-lint                    interactive menu
 /pi-lint status             show rule state
-/pi-lint disable <rule>     turn off one rule
-/pi-lint enable <rule>      turn it back on
+/pi-lint disable <rule>     opt out of one rule
+/pi-lint enable <rule>      opt in to one rule
 /pi-lint off                fully disable
 /pi-lint on                 re-enable
-/pi-lint reset              restore defaults
+/pi-lint reset              clear rule opt-ins (all rules off)
 ```
 
 Persistent config lives at `~/.pi/pi-lint.json`.
@@ -88,7 +80,7 @@ Env vars override the persisted config so existing setups keep working:
 |---|---|
 | `PI_LINT_OFF=1` | Fully disable pi-lint for this session |
 | `PI_LINT_DISABLE=rule1,rule2` | Disable specific rules for this session |
-| `PI_LINT_ENABLE=rule1,rule2` | Opt in to off-by-default rules for this session |
+| `PI_LINT_ENABLE=rule1,rule2` | Opt in to rules for this session |
 | `PI_LINT_POLL_MS=250` | How often to re-evaluate the draft (default 250ms, min 50ms) |
 
 ## How it works

@@ -213,10 +213,10 @@ function countBarePronouns(text: string): number {
 // ---------- Rules ----------
 
 export const RULES: Rule[] = [
-	// ----- Basics (default-on) -----
+	// ----- Rules (all opt-in) -----
 	{
 		id: "vague-opener",
-		defaultEnabled: true,
+		defaultEnabled: false,
 		check(ctx) {
 			if (!ctx.isFirstMessage) return null;
 			const t = ctx.text.trim();
@@ -231,7 +231,6 @@ export const RULES: Rule[] = [
 		},
 	},
 
-	// ----- Off by default; opt in via `/pi-lint enable <id>` -----
 	{
 		id: "pronoun-soup",
 		defaultEnabled: false,
@@ -250,7 +249,7 @@ export const RULES: Rule[] = [
 
 	{
 		id: "reactive-noop",
-		defaultEnabled: true, // basics
+		defaultEnabled: false,
 		check(ctx) {
 			const t = ctx.text.trim();
 			if (t.length === 0 || t.length >= 80) return null;
@@ -317,7 +316,7 @@ export const RULES: Rule[] = [
 
 	{
 		id: "unbounded-loop",
-		defaultEnabled: true, // basics
+		defaultEnabled: false,
 		check(ctx) {
 			const lc = lower(ctx.text);
 			if (lc.length === 0) return null;
@@ -366,16 +365,16 @@ export const RULES: Rule[] = [
 ];
 
 /**
- * A rule fires if the user explicitly opted it in (`enabled.has(id)`)
- * OR it is a default-on rule that the user has not disabled.
+ * A rule fires only when opted in (`enabled.has(id)`). `disabled` wins so env
+ * disables can override persisted enables.
  */
 export function isRuleActive(
 	rule: Rule,
 	disabled: ReadonlySet<string>,
 	enabled: ReadonlySet<string>,
 ): boolean {
-	if (enabled.has(rule.id)) return true;
 	if (disabled.has(rule.id)) return false;
+	if (enabled.has(rule.id)) return true;
 	return rule.defaultEnabled;
 }
 

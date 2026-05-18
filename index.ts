@@ -14,12 +14,13 @@
  * Configure with:
  *   /pi-lint                   → interactive menu
  *   /pi-lint status            → show current rule state
- *   /pi-lint disable <rule>    → turn off one rule
- *   /pi-lint enable <rule>     → turn it back on
+ *   /pi-lint disable <rule>    → opt out of one rule
+ *   /pi-lint enable <rule>     → opt in to one rule
  *   /pi-lint off | on          → globally disable / enable
- *   /pi-lint reset             → restore defaults
+ *   /pi-lint reset             → clear rule opt-ins (all rules off)
  *
- *   PI_LINT_DISABLE=rule1,rule2  (env, overrides persisted config)
+ *   PI_LINT_ENABLE=rule1,rule2   (env, opt in to rules)
+ *   PI_LINT_DISABLE=rule1,rule2  (env, overrides persisted enables)
  *   PI_LINT_OFF=1                (env, fully disable)
  *   PI_LINT_POLL_MS=250          (env, override poll interval)
  */
@@ -42,7 +43,7 @@ const ALL_RULE_IDS = RULES.map((r) => r.id);
 interface PersistedConfig {
 	off?: boolean;
 	disabled?: string[]; // rule ids the user explicitly turned off
-	enabled?: string[]; // rule ids the user explicitly opted in (for default-off rules)
+	enabled?: string[]; // rule ids the user explicitly opted in
 }
 
 interface ResolvedConfig {
@@ -74,7 +75,7 @@ function savePersisted(config: PersistedConfig): void {
 	writeFileSync(path, JSON.stringify(config, null, 2));
 }
 
-function parseDisabledEnv(raw: string | undefined): string[] {
+function parseRuleEnv(raw: string | undefined): string[] {
 	if (!raw) return [];
 	return raw
 		.split(",")
@@ -95,12 +96,12 @@ function resolveConfig(persisted: PersistedConfig): ResolvedConfig {
 
 	const disabled = new Set<string>([
 		...(persisted.disabled ?? []).filter((id) => ALL_RULE_IDS.includes(id)),
-		...parseDisabledEnv(process.env.PI_LINT_DISABLE),
+		...parseRuleEnv(process.env.PI_LINT_DISABLE),
 	]);
 
 	const enabled = new Set<string>([
 		...(persisted.enabled ?? []).filter((id) => ALL_RULE_IDS.includes(id)),
-		...parseDisabledEnv(process.env.PI_LINT_ENABLE),
+		...parseRuleEnv(process.env.PI_LINT_ENABLE),
 	]);
 
 	return { off, disabled, enabled, pollMs: parsePollEnv(process.env.PI_LINT_POLL_MS) };
@@ -276,7 +277,7 @@ export default function (pi: ExtensionAPI): void {
 					d.disabled = [];
 					d.enabled = [];
 				});
-				ctx.ui.notify("pi-lint: reset to defaults", "info");
+				ctx.ui.notify("pi-lint: reset to defaults (all rules off)", "info");
 				return;
 			default:
 				ctx.ui.notify(
@@ -293,13 +294,11 @@ export default function (pi: ExtensionAPI): void {
 		lines.push("rules:");
 		for (const rule of RULES) {
 			const active = isRuleActive(rule, config.disabled, config.enabled);
-			const note = rule.defaultEnabled
-				? active
-					? "on (default)"
-					: "off (you disabled it)"
-				: active
-					? "on (you enabled it)"
-					: "off (default)";
+			const note = active
+				? "on (you enabled it)"
+				: config.disabled.has(rule.id)
+					? "off (disabled)"
+					: "off (default; opt in)";
 			lines.push(`  ${rule.id} — ${note}`);
 		}
 		lines.push(`config file: ${configPath()}`);
@@ -311,7 +310,7 @@ export default function (pi: ExtensionAPI): void {
 			config.off ? "Turn pi-lint on" : "Turn pi-lint off",
 			"Toggle a rule",
 			"Show status",
-			"Reset to defaults",
+			"Reset to defaults (all rules off)",
 		]);
 		if (!choice) return;
 
@@ -326,8 +325,7 @@ export default function (pi: ExtensionAPI): void {
 				const items = RULES.map((r) => {
 					const active = isRuleActive(r, config.disabled, config.enabled);
 					const tag = active ? "on" : "off";
-					const dim = r.defaultEnabled ? "" : " — off by default";
-					return `${r.id} (${tag})${dim}`;
+					return `${r.id} (${tag}) — opt-in`;
 				});
 				const pick = await ctx.ui.select("Pick a rule to toggle", items);
 				if (!pick) return;
@@ -344,7 +342,7 @@ export default function (pi: ExtensionAPI): void {
 			case "Show status":
 				ctx.ui.notify(formatStatus(), "info");
 				return;
-			case "Reset to defaults": {
+			case "Reset to defaults (all rules off)": {
 				const ok = await ctx.ui.confirm("Reset pi-lint?", "This clears your saved config.");
 				if (!ok) return;
 				await handleCommand("reset", ctx);
