@@ -1,6 +1,6 @@
 {
   "name": "pi-linter",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Inline session linter for Pi — flags vague openers, pronoun soup, scope creep, and other input anti-patterns above the editor.",
   "keywords": [
     "pi-package",

@@ -37,12 +37,12 @@ npm install
 pi install ./packages/pi-linter
 ```
 
-> The npm package is `pi-linter` (the unscoped `pi-lint` slot was blocked by npm's name-similarity check). Slash commands, config file (`~/.pi/pi-lint.json`), and env vars (`PI_LINT_*`) all still use `pi-lint`.
+> The npm package is `pi-linter` (the unscoped `pi-lint` slot was blocked by npm's name-similarity check). Slash command is `/linter`; config file (`~/.pi/pi-lint.json`) and env vars (`PI_LINT_*`) still use `pi-lint`.
 
 ## Rules
 
 pi-linter ships with every rule **off by default**. Opt in per rule via
-`/pi-lint enable <rule>` — start silent, then enable only rules you want.
+`/linter enable <rule>` — start silent, then enable only rules you want.
 
 | Rule | Severity | Triggers when | Fix template |
 |---|---|---|---|
@@ -61,13 +61,13 @@ pi-linter ships with every rule **off by default**. Opt in per rule via
 Inside pi:
 
 ```
-/pi-lint                    interactive menu
-/pi-lint status             show rule state
-/pi-lint disable <rule>     opt out of one rule
-/pi-lint enable <rule>      opt in to one rule
-/pi-lint off                fully disable
-/pi-lint on                 re-enable
-/pi-lint reset              clear rule opt-ins (all rules off)
+/linter                    interactive menu
+/linter status             show rule state
+/linter disable <rule>     opt out of one rule
+/linter enable <rule>      opt in to one rule
+/linter off                fully disable
+/linter on                 re-enable
+/linter reset              clear rule opt-ins (all rules off)
 ```
 
 Persistent config lives at `~/.pi/pi-lint.json`.
@@ -106,7 +106,7 @@ pi-linter intentionally **stays silent** when:
   `!!grep -rn 'still failing' .`). These are shell commands, not natural-language
   prompts — the rules don't apply.
 - The draft is empty or whitespace-only.
-- `/pi-lint off` or `PI_LINT_OFF=1`.
+- `/linter off` or `PI_LINT_OFF=1`.
 
 ## Compatibility
 

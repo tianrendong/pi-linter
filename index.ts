@@ -12,12 +12,12 @@
  *   - poll the editor every PI_LINT_POLL_MS (default 250ms)
  *
  * Configure with:
- *   /pi-lint                   → interactive menu
- *   /pi-lint status            → show current rule state
- *   /pi-lint disable <rule>    → opt out of one rule
- *   /pi-lint enable <rule>     → opt in to one rule
- *   /pi-lint off | on          → globally disable / enable
- *   /pi-lint reset             → clear rule opt-ins (all rules off)
+ *   /linter                   → interactive menu
+ *   /linter status            → show current rule state
+ *   /linter disable <rule>    → opt out of one rule
+ *   /linter enable <rule>     → opt in to one rule
+ *   /linter off | on          → globally disable / enable
+ *   /linter reset             → clear rule opt-ins (all rules off)
  *
  *   PI_LINT_ENABLE=rule1,rule2   (env, opt in to rules)
  *   PI_LINT_DISABLE=rule1,rule2  (env, overrides persisted enables)
@@ -34,7 +34,7 @@ import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@e
 import { findingsSignature, lintAndFormat, PI_LINT_WIDGET_KEY } from "./lint.js";
 import { isRuleActive, RULES } from "./rules.js";
 
-const COMMAND_NAME = "pi-lint";
+const COMMAND_NAME = "linter";
 const DEFAULT_POLL_MS = 250;
 const MIN_POLL_MS = 50;
 
@@ -185,7 +185,7 @@ export default function (pi: ExtensionAPI): void {
 	});
 
 	pi.registerCommand(COMMAND_NAME, {
-		description: "Configure pi-lint (linter for the input bar)",
+		description: "Configure pi-linter (linter for the input bar)",
 		getArgumentCompletions: (prefix: string) => {
 			const trimmed = prefix.trimStart();
 			const subcommands = ["status", "on", "off", "enable", "disable", "reset"];
@@ -226,14 +226,14 @@ export default function (pi: ExtensionAPI): void {
 				persist((d) => {
 					d.off = false;
 				});
-				ctx.ui.notify("pi-lint: on", "info");
+				ctx.ui.notify("pi-linter: on", "info");
 				return;
 			case "off":
 				persist((d) => {
 					d.off = true;
 				});
 				ctx.ui.setWidget(PI_LINT_WIDGET_KEY, undefined);
-				ctx.ui.notify("pi-lint: off", "info");
+				ctx.ui.notify("pi-linter: off", "info");
 				return;
 			case "enable": {
 				if (!rest) {
@@ -250,7 +250,7 @@ export default function (pi: ExtensionAPI): void {
 					en.add(rest);
 					d.enabled = Array.from(en);
 				});
-				ctx.ui.notify(`pi-lint: enabled "${rest}"`, "info");
+				ctx.ui.notify(`pi-linter: enabled "${rest}"`, "info");
 				return;
 			}
 			case "disable": {
@@ -268,7 +268,7 @@ export default function (pi: ExtensionAPI): void {
 					dis.add(rest);
 					d.disabled = Array.from(dis);
 				});
-				ctx.ui.notify(`pi-lint: disabled "${rest}"`, "info");
+				ctx.ui.notify(`pi-linter: disabled "${rest}"`, "info");
 				return;
 			}
 			case "reset":
@@ -277,7 +277,7 @@ export default function (pi: ExtensionAPI): void {
 					d.disabled = [];
 					d.enabled = [];
 				});
-				ctx.ui.notify("pi-lint: reset to defaults (all rules off)", "info");
+				ctx.ui.notify("pi-linter: reset (all rules off)", "info");
 				return;
 			default:
 				ctx.ui.notify(
@@ -289,7 +289,7 @@ export default function (pi: ExtensionAPI): void {
 
 	function formatStatus(): string {
 		const lines: string[] = [];
-		lines.push(`pi-lint: ${config.off ? "off" : "on"}`);
+		lines.push(`pi-linter: ${config.off ? "off" : "on"}`);
 		lines.push(`poll: ${config.pollMs}ms`);
 		lines.push("rules:");
 		for (const rule of RULES) {
@@ -298,7 +298,7 @@ export default function (pi: ExtensionAPI): void {
 				? "on (you enabled it)"
 				: config.disabled.has(rule.id)
 					? "off (disabled)"
-					: "off (default; opt in)";
+					: "off";
 			lines.push(`  ${rule.id} — ${note}`);
 		}
 		lines.push(`config file: ${configPath()}`);
@@ -306,26 +306,26 @@ export default function (pi: ExtensionAPI): void {
 	}
 
 	async function runMenu(ctx: ExtensionCommandContext): Promise<void> {
-		const choice = await ctx.ui.select("Configure pi-lint", [
-			config.off ? "Turn pi-lint on" : "Turn pi-lint off",
+		const choice = await ctx.ui.select("Configure pi-linter", [
+			config.off ? "Turn pi-linter on" : "Turn pi-linter off",
 			"Toggle a rule",
 			"Show status",
-			"Reset to defaults (all rules off)",
+			"Reset config (all rules off)",
 		]);
 		if (!choice) return;
 
 		switch (choice) {
-			case "Turn pi-lint off":
+			case "Turn pi-linter off":
 				await handleCommand("off", ctx);
 				return;
-			case "Turn pi-lint on":
+			case "Turn pi-linter on":
 				await handleCommand("on", ctx);
 				return;
 			case "Toggle a rule": {
 				const items = RULES.map((r) => {
 					const active = isRuleActive(r, config.disabled, config.enabled);
 					const tag = active ? "on" : "off";
-					return `${r.id} (${tag}) — opt-in`;
+					return `${r.id} (${tag})`;
 				});
 				const pick = await ctx.ui.select("Pick a rule to toggle", items);
 				if (!pick) return;
@@ -342,8 +342,8 @@ export default function (pi: ExtensionAPI): void {
 			case "Show status":
 				ctx.ui.notify(formatStatus(), "info");
 				return;
-			case "Reset to defaults (all rules off)": {
-				const ok = await ctx.ui.confirm("Reset pi-lint?", "This clears your saved config.");
+			case "Reset config (all rules off)": {
+				const ok = await ctx.ui.confirm("Reset pi-linter?", "This clears your saved config.");
 				if (!ok) return;
 				await handleCommand("reset", ctx);
 				return;
